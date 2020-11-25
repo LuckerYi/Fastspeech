@@ -1,0 +1,166 @@
+#####################################################training####################################
+{
+    "version": "2020-09-04",
+    "metadata": {
+        "name": "Fastspeech_source_model_spk500_ttsdata_total_fix_lookup_unpacked_bs=20000_layernorm_use_ssim_loss_l1_testing",
+        "cluster": "sc4",
+        "vc": "ipgsp",
+        "queue": "tts-e2e",
+        "username": "yuanhyi"
+    },
+    "environmentVariables": {
+        "repo_path": "/blob/yuanhyi/Transformer/Student_model_layernorm/espnet-master",
+        "hparams": "distributed_run=True,fp16_run=False,cudnn_benchmark=True,iters=1000000,batch_criterion=frame,batch_size=20000,is_multi_styles=False,is_multi_speakers=True,is_spk_layer_norm=True,use_ssim_loss=True,loss_type=L1,training_files=/blob/yuanhyi/spk500_ttsdata_total_fix_lookup_unpacked/training_with_mel_frame.txt,mel_dir=/blob/yuanhyi/spk500_ttsdata_total_fix_lookup_unpacked/,phone_set_file=/blob/yuanhyi/spk500_ttsdata_total_fix_lookup_unpacked/phone_set.json"
+    },
+    "resources":{
+        "workers": {
+            "type": "skuResource",
+            "sku": "G8",
+            "count": 1,
+            "image": "phillyregistry.azurecr.io/philly/jobs/custom/pytorch-tts:v1.3-py37-cuda10",
+            "commandLine": "cd $repo_path && pip install typeguard && python multiproc.py train.py -l $PHILLY_LOG_DIRECTORY -o $PHILLY_MODEL_DIRECTORY --hparams $hparams"
+        }
+    },
+    "volumes": {
+        "myblob": {
+            "type": "blobfuseVolume",
+            "storageAccount": "exawattaiprmbtts01scus",
+            "containerName": "philly-ipgsp",
+            "path": "/blob"
+        }
+    },
+    "credentials": {
+        "storageAccounts": {
+            "exawattaiprmbtts01scus": {
+                "keyKeyvaultSecretId": "https://exawatt-philly-ipgsp.vault.azure.net/secrets/exawattaiprmbtts01scus-key/7107973105fc47c986327916a39cd632"
+            }
+        }
+    }
+}
+
+#####################################################training_style####################################
+{
+    "version": "2020-10-14",
+    "metadata": {
+        "name": "style_extractor_presteps_100k_choosestl_steps_50k_nodropout_shuffle_gst_train_att_true_nospk_gst_reference_encoder_mha_layers_4_guoqing_mha_gst_concat_fastspeech_source_model_spk500_ttsdata_total_fix_lookup_unpacked_bs=10000_layernorm_use_ssim_loss_l1",
+        "cluster": "sc4",
+        "vc": "ipgsp",
+        "queue": "tts-e2e",
+        "username": "yuanhyi"
+    },
+    "environmentVariables": {
+        "repo_path": "/blob/yuanhyi/Transformer/Student_model_style/espnet-master",
+        "hparams": "att_name=100k_shuffle_mha,shuffle=True,use_gst=True,gst_train_att=True,style_extractor_presteps=250000,choosestl_steps=50000,style_embed_integration_type=concat,style_vector_type=mha,gst_reference_encoder=multiheadattention,gst_reference_encoder_mha_layers=4,is_refine_style=False,distributed_run=True,fp16_run=False,cudnn_benchmark=True,numberworkers=32,iters=1000000,Generator_pretrain_step=1,iters_per_checkpoint=5000,batch_criterion=frame,batch_size=10000,is_multi_styles=False,is_multi_speakers=True,is_spk_layer_norm=True,use_ssim_loss=True,loss_type=L1,is_partial_refine=False,use_GAN=False,GAN_alpha=0.1,GAN_type=wgan-gp,training_files=/blob/yuanhyi/spk500_ttsdata_total_fix_lookup_unpacked/training_with_mel_frame.txt,mel_dir=/blob/yuanhyi/spk500_ttsdata_total_fix_lookup_unpacked/,phone_set_file=/blob/yuanhyi/spk500_ttsdata_total_fix_lookup_unpacked/phone_set.json",
+        "refine_from": "/blob/yuanhyi/Transformer/Student_model_style/espnet-master/checkpoint",
+        "LOG_DIRECTORY":"/blob/yuanhyi/Transformer/Student_model_style/espnet-master/logdir",
+        "MODEL_DIRECTORY":"/blob/yuanhyi/Transformer/Student_model_style/espnet-master/checkpoint_refine",
+        "checkpoint_path":"/blob/yuanhyi/Transformer/Student_model_style/espnet-master/checkpoint/checkpoint_250000"
+    },
+    "resources":{
+        "workers": {
+            "type": "skuResource",
+            "sku": "G8",
+            "count": 1,
+            "image": "phillyregistry.azurecr.io/philly/jobs/custom/pytorch-tts:v1.3-py37-cuda10",
+            "commandLine": "cd $repo_path && pip install typeguard && python multiproc.py train.py -l $PHILLY_LOG_DIRECTORY -o $PHILLY_MODEL_DIRECTORY -c $checkpoint_path --hparams $hparams"
+        }
+    },
+    "volumes": {
+        "myblob": {
+            "type": "blobfuseVolume",
+            "storageAccount": "exawattaiprmbtts01scus",
+            "containerName": "philly-ipgsp",
+            "path": "/blob"
+        }
+    },
+    "credentials": {
+        "storageAccounts": {
+            "exawattaiprmbtts01scus": {
+                "keyKeyvaultSecretId": "https://exawatt-philly-ipgsp.vault.azure.net/secrets/exawattaiprmbtts01scus-key/7107973105fc47c986327916a39cd632"
+            }
+        }
+    }
+}
+
+#####################################################refine####################################
+{
+    "version": "2020-09-19",
+    "metadata": {
+        "name": "wgan_refine_bbc",
+        "cluster": "sc4",
+        "vc": "ipgsp",
+        "queue": "tts-e2e",
+        "username": "yuanhyi"
+    },
+    "environmentVariables": {
+        "repo_path": "/blob/yuanhyi/Transformer/Student_model_layernorm/espnet-master",
+        "hparams": "distributed_run=False,fp16_run=False,cudnn_benchmark=False,iters=3000,Generator_pretrain_step=1,iters_per_checkpoint=1000,batch_criterion=utterance,batch_size=8,is_multi_styles=False,is_multi_speakers=True,is_spk_layer_norm=True,use_ssim_loss=True,loss_type=L1,is_partial_refine=True,use_GAN=True,GAN_alpha=0.1,GAN_type=wgan-gp,training_files=/blob/yuanhyi/Transformer/Student_model_layernorm/espnet-master/refine_data/training_with_mel_frame_refine.txt,mel_dir=/blob/yuanhyi/Transformer/Student_model_layernorm/espnet-master/refine_data/,phone_set_file=/blob/yuanhyi/spk500_ttsdata_total_fix_lookup_unpacked/phone_set.json",
+        "refine_from": "/blob/yuanhyi/Transformer/Student_model_layernorm/espnet-master/checkpoint",
+        "LOG_DIRECTORY":"/blob/yuanhyi/Transformer/Student_model_layernorm/espnet-master/logdir",
+        "MODEL_DIRECTORY":"/blob/yuanhyi/Transformer/Student_model_layernorm/espnet-master/checkpoint_refine"
+
+    },
+    "resources":{
+        "workers": {
+            "type": "skuResource",
+            "sku": "G8",
+            "count": 1,
+            "image": "phillyregistry.azurecr.io/philly/jobs/custom/pytorch-tts:v1.3-py37-cuda10",
+            "commandLine": "cd $repo_path && pip install typeguard && python train.py -l $PHILLY_LOG_DIRECTORY -o $PHILLY_MODEL_DIRECTORY --hparams $hparams --refine_from $refine_from"
+        }
+    },
+    "volumes": {
+        "myblob": {
+            "type": "blobfuseVolume",
+            "storageAccount": "exawattaiprmbtts01scus",
+            "containerName": "philly-ipgsp",
+            "path": "/blob"
+        }
+    },
+    "credentials": {
+        "storageAccounts": {
+            "exawattaiprmbtts01scus": {
+                "keyKeyvaultSecretId": "https://exawatt-philly-ipgsp.vault.azure.net/secrets/exawattaiprmbtts01scus-key/7107973105fc47c986327916a39cd632"
+            }
+        }
+    }
+}
+
+#####################################################inference####################################
+{
+    "version": "2020-07-26",
+    "metadata": {
+        "name": "transformerTTS_jessa",
+        "cluster": "sc4",
+        "vc": "ipgsp",
+        "queue": "am-e2e",
+        "username": "yuanhyi"
+    },
+    "environmentVariables": {
+        "repo_path": "/blob/yuanhyi/Transformer"
+    },
+    "resources":{
+        "workers": {
+            "type": "skuResource",
+            "sku": "G8",
+            "count": 1,
+            "image": "phillyregistry.azurecr.io/philly/jobs/custom/pytorch-tts:v1.3-py37-cuda10",
+            "commandLine": "cd $repo_path && python inference.py"
+        }
+    },
+    "volumes": {
+        "myblob": {
+            "type": "blobfuseVolume",
+            "storageAccount": "exawattaiprmbtts01scus",
+            "containerName": "philly-ipgsp",
+            "path": "/blob"
+        }
+    },
+    "credentials": {
+        "storageAccounts": {
+            "exawattaiprmbtts01scus": {
+                "keyKeyvaultSecretId": "https://exawatt-philly-ipgsp.vault.azure.net/secrets/exawattaiprmbtts01scus-key/7107973105fc47c986327916a39cd632"
+            }
+        }
+    }
+}
